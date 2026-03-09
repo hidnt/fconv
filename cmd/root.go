@@ -26,7 +26,7 @@ func NewRootCmd(srv service.ConverterService) *cobra.Command {
 	rootCmd.Flags().StringVarP(&cfg.DstExt, "to", "t", "", "Target extension (required)")
 	rootCmd.MarkFlagRequired("to")
 	cfg.DstExt = strings.TrimPrefix(strings.ToLower(cfg.DstExt), ".")
-	rootCmd.Flags().StringVarP(&cfg.DstFolder, "output", "o", ".", "Destination folder for saving")
+	rootCmd.Flags().StringVarP(&cfg.DstFolder, "output", "o", "", "Destination folder for saving")
 	rootCmd.Flags().BoolVarP(&cfg.NeedRecursion, "recursive", "r", false, "Recursive directory traversal")
 	rootCmd.Flags().IntVarP(&cfg.LevelOfRec, "level", "L", -1, "Level of recursion")
 	if !cfg.NeedRecursion {

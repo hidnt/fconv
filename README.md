@@ -30,7 +30,7 @@ fconv [FILES...] --to <EXTENSION> [OPTIONS] [flags]
 | Flag | Full name | Description |
 | :--- | :--- | :--- |
 | `-t` | `--to string` | Target extension |
-| `-o` | `--output string` | Destination folder for saving (default ".") |
+| `-o` | `--output string` | Destination folder for saving |
 | `-r` | `--recursive` | Recursive directory traversal |
 | `-L` | `--level int` | Level of recursion |
 | `-d` | `--delete` | Delete files after convertion |

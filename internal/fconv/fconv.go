@@ -49,7 +49,14 @@ func (a *App) processFile(ctx context.Context, srcPath string) {
 	rawExt := filepath.Ext(srcPath)
 	srcExt := strings.TrimPrefix(rawExt, ".")
 	basename := strings.TrimSuffix(filepath.Base(srcPath), rawExt)
-	dstPath := filepath.Join(a.cfg.DstFolder, basename+"."+a.cfg.DstExt)
+
+	var dstBasePath string
+	if a.cfg.DstFolder == "" {
+		dstBasePath = filepath.Dir(srcPath)
+	} else {
+		dstBasePath = a.cfg.DstFolder
+	}
+	dstPath := filepath.Join(dstBasePath, basename+"."+a.cfg.DstExt)
 
 	if _, err := os.Stat(dstPath); err == nil && !a.cfg.Force {
 		fmt.Fprintln(os.Stderr, "File already exists: "+dstPath)
