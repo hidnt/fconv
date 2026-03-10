@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sync"
 )
 
-var videoSupportedExt sync.Map
+var videoSupportedExt = make(map[string][]string, 16)
 
 func init() {
 	importFormats := []string{"mp4", "mkv", "mov", "avi", "gif", "wmv", "ogg"}
 	exportFormats := []string{"mp4", "mkv", "mov", "avi", "gif", "wmv"}
 
 	for _, src := range importFormats {
-		videoSupportedExt.Store(src, exportFormats)
+		videoSupportedExt[src] = exportFormats
 	}
 }
 
@@ -30,22 +29,13 @@ func NewVideoConverter() VideoConverter {
 	}
 }
 
-func (c VideoConverter) CheckFFmpeg() error {
-	cmd := exec.Command(c.FFmpegPath, "-version")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ffmpeg not found or not working: %w", err)
-	}
-	return nil
-}
-
 func (c VideoConverter) Supports(ctx context.Context, srcExt, dstExt string) bool {
-	val, ok := videoSupportedExt.Load(srcExt)
+	allowedExt, ok := videoSupportedExt[srcExt]
 	if !ok {
 		return false
 	}
 
-	allowedDsts := val.([]string)
-	for _, allowed := range allowedDsts {
+	for _, allowed := range allowedExt {
 		if allowed == dstExt {
 			return true
 		}

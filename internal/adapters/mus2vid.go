@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sync"
 )
 
-var mus2VidSupportedExt sync.Map
+var mus2VidSupportedExt = make(map[string][]string, 16)
 
 func init() {
 	importFormats := []string{"mp4", "mkv", "mov", "avi", "wmv", "ogg"}
 	exportFormats := []string{"mp3", "wav", "flac", "aac"}
 
 	for _, src := range importFormats {
-		musicSupportedExt.Store(src, exportFormats)
+		mus2VidSupportedExt[src] = exportFormats
 	}
 }
 
@@ -30,22 +29,13 @@ func NewMus2VidConverter() Mus2VidConverter {
 	}
 }
 
-func (c Mus2VidConverter) CheckFFmpeg() error {
-	cmd := exec.Command(c.FFmpegPath, "-version")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ffmpeg not found or not working: %w", err)
-	}
-	return nil
-}
-
 func (c Mus2VidConverter) Supports(ctx context.Context, srcExt, dstExt string) bool {
-	val, ok := musicSupportedExt.Load(srcExt)
+	allowedExt, ok := mus2VidSupportedExt[srcExt]
 	if !ok {
 		return false
 	}
 
-	allowedDsts := val.([]string)
-	for _, allowed := range allowedDsts {
+	for _, allowed := range allowedExt {
 		if allowed == dstExt {
 			return true
 		}

@@ -2,7 +2,9 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os/exec"
 
 	"github.com/google/wire"
 	"github.com/hidnt/fconv/internal/service"
@@ -20,6 +22,14 @@ func (cw ctxWriter) Write(p []byte) (int, error) {
 	default:
 		return cw.w.Write(p)
 	}
+}
+
+func checkFFmpeg(ffmpegPath string) error {
+	cmd := exec.Command(ffmpegPath, "-version")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg not found or not working: %w", err)
+	}
+	return nil
 }
 
 var AdaptersSet = wire.NewSet(

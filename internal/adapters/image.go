@@ -7,7 +7,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"os"
-	"sync"
 
 	"github.com/HugoSmits86/nativewebp"
 	"github.com/gen2brain/avif"
@@ -28,14 +27,14 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-var imageSupportedExt sync.Map
+var imageSupportedExt = make(map[string][]string, 16)
 
 func init() {
 	importFormats := []string{"png", "jpg", "jpeg", "webp", "bmp", "tiff", "avif", "ico", "cur", "heic", "heif"}
 	exportFormats := []string{"png", "jpg", "jpeg", "webp", "bmp", "tiff", "avif", "ico", "cur"}
 
 	for _, src := range importFormats {
-		imageSupportedExt.Store(src, exportFormats)
+		imageSupportedExt[src] = exportFormats
 	}
 }
 
@@ -46,13 +45,12 @@ func NewImageConverter() ImageConverter {
 }
 
 func (c ImageConverter) Supports(ctx context.Context, srcExt, dstExt string) bool {
-	val, ok := imageSupportedExt.Load(srcExt)
+	allowedExt, ok := imageSupportedExt[srcExt]
 	if !ok {
 		return false
 	}
 
-	allowedDsts := val.([]string)
-	for _, allowed := range allowedDsts {
+	for _, allowed := range allowedExt {
 		if allowed == dstExt {
 			return true
 		}

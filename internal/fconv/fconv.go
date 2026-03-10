@@ -11,10 +11,10 @@ import (
 
 	"github.com/hidnt/fconv/internal/models"
 	"github.com/hidnt/fconv/internal/service"
+	"golang.org/x/sync/semaphore"
 )
 
 var (
-	workersCount = runtime.NumCPU()
 	bufferLength = 1024
 )
 
@@ -33,21 +33,48 @@ func New(cfg models.Config, srv service.ConverterService) App {
 	}
 }
 
-func (a *App) runWorkers(ctx context.Context, n int) {
-	for range n {
-		a.wg.Add(1)
-		go func() {
-			defer a.wg.Done()
-			for path := range a.jobs {
-				a.processFile(ctx, path)
-			}
-		}()
+func (a *App) weight(path string, maxWorkers int64) int64 {
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
+
+	switch ext {
+	case "png", "jpg", "jpeg", "webp", "bmp", "tiff", "avif", "ico", "cur", "heic", "heif":
+		return 1
+	default:
+		weight := maxWorkers / 2
+		if weight < 1 {
+			return 1
+		}
+		return weight
 	}
+}
+
+func (a *App) dispatcher(ctx context.Context) {
+	maxWorkers := int64(runtime.NumCPU())
+	sem := semaphore.NewWeighted(maxWorkers)
+
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+
+		for path := range a.jobs {
+			weight := a.weight(path, maxWorkers)
+			if err := sem.Acquire(ctx, weight); err != nil {
+				break
+			}
+
+			a.wg.Add(1)
+			go func(path string, weight int64) {
+				defer a.wg.Done()
+				defer sem.Release(weight)
+				a.processFile(ctx, path)
+			}(path, weight)
+		}
+	}()
 }
 
 func (a *App) processFile(ctx context.Context, srcPath string) {
 	rawExt := filepath.Ext(srcPath)
-	srcExt := strings.TrimPrefix(rawExt, ".")
+	srcExt := strings.ToLower(strings.TrimPrefix(rawExt, "."))
 	basename := strings.TrimSuffix(filepath.Base(srcPath), rawExt)
 
 	var dstBasePath string
@@ -100,7 +127,7 @@ func (a *App) recWalkDir(ctx context.Context, path string, currentLevel int) {
 }
 
 func (a *App) Fconv(ctx context.Context, paths []string) {
-	a.runWorkers(ctx, workersCount)
+	a.dispatcher(ctx)
 
 	if !a.cfg.NeedRecursion {
 		a.cfg.LevelOfRec = 1

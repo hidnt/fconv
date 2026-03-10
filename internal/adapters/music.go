@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sync"
 )
 
-var musicSupportedExt sync.Map
+var musicSupportedExt = make(map[string][]string, 16)
 
 func init() {
 	importFormats := []string{"mp3", "wav", "flac", "aac"}
 	exportFormats := []string{"mp3", "wav", "flac", "aac"}
 
 	for _, src := range importFormats {
-		musicSupportedExt.Store(src, exportFormats)
+		musicSupportedExt[src] = exportFormats
 	}
 }
 
@@ -30,22 +29,13 @@ func NewMusicConverter() MusicConverter {
 	}
 }
 
-func (c MusicConverter) CheckFFmpeg() error {
-	cmd := exec.Command(c.FFmpegPath, "-version")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ffmpeg not found or not working: %w", err)
-	}
-	return nil
-}
-
 func (c MusicConverter) Supports(ctx context.Context, srcExt, dstExt string) bool {
-	val, ok := musicSupportedExt.Load(srcExt)
+	allowedExt, ok := musicSupportedExt[srcExt]
 	if !ok {
 		return false
 	}
 
-	allowedDsts := val.([]string)
-	for _, allowed := range allowedDsts {
+	for _, allowed := range allowedExt {
 		if allowed == dstExt {
 			return true
 		}
